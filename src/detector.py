@@ -67,7 +67,8 @@ def detect_faces(image, min_face_size=20.0,
     bounding_boxes = bounding_boxes[keep]
 
     # use offsets predicted by pnet to transform bounding boxes
-    bounding_boxes = calibrate_box(bounding_boxes[:, 0:5], bounding_boxes[:, 5:])
+    bounding_boxes = calibrate_box(
+        bounding_boxes[:, 0:5], bounding_boxes[:, 5:])
     # shape [n_boxes, 5]
 
     bounding_boxes = convert_to_square(bounding_boxes)
@@ -95,7 +96,7 @@ def detect_faces(image, min_face_size=20.0,
     # STAGE 3
 
     img_boxes = get_image_boxes(bounding_boxes, image, size=48)
-    if len(img_boxes) == 0: 
+    if len(img_boxes) == 0:
         return [], []
     img_boxes = Variable(torch.FloatTensor(img_boxes), volatile=True)
     output = onet(img_boxes)
@@ -113,8 +114,10 @@ def detect_faces(image, min_face_size=20.0,
     width = bounding_boxes[:, 2] - bounding_boxes[:, 0] + 1.0
     height = bounding_boxes[:, 3] - bounding_boxes[:, 1] + 1.0
     xmin, ymin = bounding_boxes[:, 0], bounding_boxes[:, 1]
-    landmarks[:, 0:5] = np.expand_dims(xmin, 1) + np.expand_dims(width, 1)*landmarks[:, 0:5]
-    landmarks[:, 5:10] = np.expand_dims(ymin, 1) + np.expand_dims(height, 1)*landmarks[:, 5:10]
+    landmarks[:, 0:5] = np.expand_dims(
+        xmin, 1) + np.expand_dims(width, 1)*landmarks[:, 0:5]
+    landmarks[:, 5:10] = np.expand_dims(
+        ymin, 1) + np.expand_dims(height, 1)*landmarks[:, 5:10]
 
     bounding_boxes = calibrate_box(bounding_boxes, offsets)
     keep = nms(bounding_boxes, nms_thresholds[2], mode='min')
