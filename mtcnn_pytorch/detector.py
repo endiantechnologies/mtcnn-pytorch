@@ -5,7 +5,7 @@ from torch.autograd import Variable
 from .get_nets import PNet, RNet, ONet
 from .box_utils import nms, calibrate_box, get_image_boxes, convert_to_square
 from .first_stage import run_first_stage
-
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 def detect_faces(image, min_face_size=20.0,
                  thresholds=[0.6, 0.7, 0.8],
@@ -26,9 +26,9 @@ def detect_faces(image, min_face_size=20.0,
     
     image = Image.fromarray(image)
     if pnet is None or rnet is None or onet is None:
-        pnet = PNet()
-        rnet = RNet()
-        onet = ONet()
+        pnet = PNet().to(device)
+        rnet = RNet().to(device)
+        onet = ONet().to(device)
         onet.eval()
     # BUILD AN IMAGE PYRAMID
     width, height = image.size
@@ -83,10 +83,11 @@ def detect_faces(image, min_face_size=20.0,
         # STAGE 2
 
         img_boxes = get_image_boxes(bounding_boxes, image, size=24)
-        img_boxes = Variable(torch.FloatTensor(img_boxes), volatile=True)
-        output = rnet(img_boxes)
-        offsets = output[0].data.numpy()  # shape [n_boxes, 4]
-        probs = output[1].data.numpy()  # shape [n_boxes, 2]
+        with torch.no_grad():
+            img_boxes = torch.FloatTensor(img_boxes).to(device)
+            output = rnet(img_boxes)
+        offsets = output[0].cpu().data.numpy()  # shape [n_boxes, 4]
+        probs = output[1].cpu().data.numpy()  # shape [n_boxes, 2]
 
         keep = np.where(probs[:, 1] > thresholds[1])[0]
         bounding_boxes = bounding_boxes[keep]
@@ -104,11 +105,12 @@ def detect_faces(image, min_face_size=20.0,
         img_boxes = get_image_boxes(bounding_boxes, image, size=48)
         if len(img_boxes) == 0:
             return [], []
-        img_boxes = Variable(torch.FloatTensor(img_boxes), volatile=True)
-        output = onet(img_boxes)
-        landmarks = output[0].data.numpy()  # shape [n_boxes, 10]
-        offsets = output[1].data.numpy()  # shape [n_boxes, 4]
-        probs = output[2].data.numpy()  # shape [n_boxes, 2]
+        with torch.no_grad():
+            img_boxes = torch.FloatTensor(img_boxes).to(device)
+            output = onet(img_boxes)
+        landmarks = output[0].cpu().data.numpy()  # shape [n_boxes, 10]
+        offsets = output[1].cpu().data.numpy()  # shape [n_boxes, 4]
+        probs = output[2].cpu().data.numpy()  # shape [n_boxes, 2]
 
         keep = np.where(probs[:, 1] > thresholds[2])[0]
         bounding_boxes = bounding_boxes[keep]

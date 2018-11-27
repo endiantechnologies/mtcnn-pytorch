@@ -4,7 +4,7 @@ import torch.nn.functional as F
 from collections import OrderedDict
 import numpy as np
 import os
-
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 class Flatten(nn.Module):
 
@@ -56,7 +56,7 @@ class PNet(nn.Module):
         weights = np.load(os.path.join(
             os.path.dirname(__file__), 'weights/pnet.npy'))[()]
         for n, p in self.named_parameters():
-            p.data = torch.FloatTensor(weights[n])
+            p.data = torch.FloatTensor(weights[n], device=device)
 
     def forward(self, x):
         """
@@ -99,9 +99,10 @@ class RNet(nn.Module):
         self.conv5_1 = nn.Linear(128, 2)
         self.conv5_2 = nn.Linear(128, 4)
 
-        weights = np.load(os.path.join(os.path.dirname(__file__), 'weights/rnet.npy'))[()]
+        weights = np.load(os.path.join(
+            os.path.dirname(__file__), 'weights/rnet.npy'))[()]
         for n, p in self.named_parameters():
-            p.data=torch.FloatTensor(weights[n])
+            p.data = torch.FloatTensor(weights[n], device=device)
 
     def forward(self, x):
         """
@@ -111,10 +112,10 @@ class RNet(nn.Module):
             b: a float tensor with shape [batch_size, 4].
             a: a float tensor with shape [batch_size, 2].
         """
-        x=self.features(x)
-        a=self.conv5_1(x)
-        b=self.conv5_2(x)
-        a=F.softmax(a)
+        x = self.features(x)
+        a = self.conv5_1(x)
+        b = self.conv5_2(x)
+        a = F.softmax(a)
         return b, a
 
 
@@ -124,7 +125,7 @@ class ONet(nn.Module):
 
         super(ONet, self).__init__()
 
-        self.features=nn.Sequential(OrderedDict([
+        self.features = nn.Sequential(OrderedDict([
             ('conv1', nn.Conv2d(3, 32, 3, 1)),
             ('prelu1', nn.PReLU(32)),
             ('pool1', nn.MaxPool2d(3, 2, ceil_mode=True)),
@@ -146,13 +147,14 @@ class ONet(nn.Module):
             ('prelu5', nn.PReLU(256)),
         ]))
 
-        self.conv6_1=nn.Linear(256, 2)
-        self.conv6_2=nn.Linear(256, 4)
-        self.conv6_3=nn.Linear(256, 10)
+        self.conv6_1 = nn.Linear(256, 2)
+        self.conv6_2 = nn.Linear(256, 4)
+        self.conv6_3 = nn.Linear(256, 10)
 
-        weights=np.load(os.path.join(os.path.dirname(__file__), 'weights/onet.npy'))[()]
+        weights = np.load(os.path.join(
+            os.path.dirname(__file__), 'weights/onet.npy'))[()]
         for n, p in self.named_parameters():
-            p.data=torch.FloatTensor(weights[n])
+            p.data = torch.FloatTensor(weights[n], device=device)
 
     def forward(self, x):
         """
@@ -163,9 +165,9 @@ class ONet(nn.Module):
             b: a float tensor with shape [batch_size, 4].
             a: a float tensor with shape [batch_size, 2].
         """
-        x=self.features(x)
-        a=self.conv6_1(x)
-        b=self.conv6_2(x)
-        c=self.conv6_3(x)
-        a=F.softmax(a)
+        x = self.features(x)
+        a = self.conv6_1(x)
+        b = self.conv6_2(x)
+        c = self.conv6_3(x)
+        a = F.softmax(a)
         return c, b, a
